@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Product orchestrator for Claude Code: validates product ideas with web research, the separately installed pm-skills frameworks, verified evidence and charts",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "plugins": [
     {
       "name": "sdd-product",
       "source": "./plugins/sdd-product",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Product orchestrator: validates a product idea with web research and the separately installed pm-skills frameworks. Sources are opened and quotes checked by a script, scores are capped by verified evidence and challenged by an independent skeptic, and the verdict comes with market, competitor, positioning, risk and experiment charts.",
       "category": "product",
       "keywords": ["product", "idea-validation", "market-research", "pm-skills", "charts"]

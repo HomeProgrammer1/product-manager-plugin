@@ -1,7 +1,7 @@
 {
   "name": "sdd-product",
   "displayName": "SDD Product",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Product orchestrator: tell it an idea and it validates it end to end. It asks only the questions that matter, researches the market and competitors on the web, runs the PM frameworks of the separately installed pm-skills marketplace in the right order, scores the idea and draws market, competitor, positioning, risk and experiment charts. Coexists with other plugins and works without pm-skills in a reduced mode.",
   "author": { "name": "HomeProgrammer1", "url": "https://github.com/HomeProgrammer1" },
   "repository": "https://github.com/HomeProgrammer1/product-manager-plugin",

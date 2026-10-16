@@ -292,7 +292,9 @@ class Plugin(unittest.TestCase):
 
     def test_orchestrator_is_explicit_only(self):
         text = (PLUGIN / "skills" / "product" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("disable-model-invocation: true", text.split("---")[1])
+        fm = text.split("---")[1]
+        self.assertNotIn("disable-model-invocation", fm)  # the desktop app hides such skills from the / menu
+        self.assertIn("Use only when the user types /sdd-product:product", fm)
 
     def test_skeptic_cannot_write(self):
         fm = self.frontmatter(PLUGIN / "agents" / "skeptic.md")
