@@ -1,0 +1,79 @@
+{
+  "charts": [
+    {
+      "name": "market",
+      "svg": "docs/example/market.svg",
+      "source_sha1": "6d265ed4d505"
+    },
+    {
+      "name": "trend",
+      "svg": "docs/example/trend.svg",
+      "source_sha1": "6d265ed4d505"
+    },
+    {
+      "name": "pricing",
+      "svg": "docs/example/pricing.svg",
+      "source_sha1": "c347e70e0440"
+    },
+    {
+      "name": "features",
+      "svg": "docs/example/features.svg",
+      "source_sha1": "d0fdbf7eda8d"
+    },
+    {
+      "name": "positioning",
+      "svg": "docs/example/positioning.svg",
+      "source_sha1": "b14e6de92aee"
+    },
+    {
+      "name": "assumptions",
+      "svg": "docs/example/assumptions.svg",
+      "source_sha1": "e7c71d59b72a"
+    },
+    {
+      "name": "scorecard",
+      "svg": "docs/example/scorecard.svg",
+      "source_sha1": "499c8ef03a0d"
+    },
+    {
+      "name": "experiments",
+      "svg": "docs/example/experiments.svg",
+      "source_sha1": "583566f1293f"
+    }
+  ],
+  "skipped": [],
+  "verdict": {
+    "score": 3.11,
+    "verdict": "pivot",
+    "confidence": 0.39,
+    "confidence_level": "low",
+    "red_flags": [],
+    "go_threshold": 3.5,
+    "kill_below": 2.5,
+    "profile": "bootstrapped",
+    "capped": [
+      "competition",
+      "feasibility"
+    ],
+    "fragile": [],
+    "challenged": [],
+    "evidence": {
+      "problem": "tested",
+      "market": "unverified",
+      "competition": "unverified",
+      "differentiation": "estimated",
+      "wtp": "assumed",
+      "reach": "assumed",
+      "feasibility": "estimated"
+    },
+    "used": {
+      "problem": 4.0,
+      "market": 3.0,
+      "competition": 3.0,
+      "differentiation": 3.0,
+      "wtp": 2.0,
+      "reach": 3.0,
+      "feasibility": 4.0
+    }
+  }
+}

@@ -1,0 +1,385 @@
+{
+  "meta": {
+    "title": "Бронювання для малих салонів краси",
+    "idea": "Telegram-бот, через який клієнти записуються до майстра без дзвінків, а майстер бачить розклад і отримує передоплату.",
+    "slug": "salon-booking",
+    "date": "2026-10-16",
+    "language": "uk",
+    "currency": "USD",
+    "price_unit": "seat",
+    "illustrative": true
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "title": "Приклад: галузевий звіт про ринок beauty-послуг",
+      "publisher": "illustrative",
+      "accessed": "2026-10-16",
+      "quote": "Приклад цитати з галузевого звіту",
+      "url": "https://example.com/beauty-market-report"
+    },
+    {
+      "id": "S2",
+      "title": "Приклад: сторінка цін конкурента BookFlow",
+      "url": "https://example.com/bookflow/pricing",
+      "accessed": "2026-10-16",
+      "quote": "Starter $15 per month"
+    },
+    {
+      "id": "S3",
+      "title": "Приклад: сторінка цін конкурента SalonPro",
+      "url": "https://example.com/salonpro/pricing",
+      "accessed": "2026-10-16",
+      "quote": "$29 per month billed annually"
+    },
+    {
+      "id": "S4",
+      "title": "Інтерв'ю з 5 майстрами (дані засновника)",
+      "path": "evidence/interviews.md",
+      "accessed": "2026-10-16",
+      "quotes": [
+        "щотижня гублю двох клієнток",
+        "4 з 5 майстрів самі ведуть запис"
+      ]
+    }
+  ],
+  "market": {
+    "unit": "USD на рік, Україна і Польща",
+    "tam": {
+      "value": 180000000,
+      "basis": "sourced",
+      "sources": [
+        "S1"
+      ],
+      "label": "усі салони і приватні майстри"
+    },
+    "sam": {
+      "value": 42000000,
+      "basis": "estimated",
+      "label": "1–5 майстрів, вже пишуть клієнтам у месенджерах"
+    },
+    "som": {
+      "value": 1300000,
+      "basis": "estimated",
+      "label": "3% SAM за 3 роки"
+    },
+    "projection_metric": "sam",
+    "projection": [
+      {
+        "year": 2024,
+        "sam": 34000000
+      },
+      {
+        "year": 2025,
+        "sam": 38000000
+      },
+      {
+        "year": 2026,
+        "sam": 42000000
+      },
+      {
+        "year": 2027,
+        "sam": 47000000,
+        "projected": true
+      },
+      {
+        "year": 2028,
+        "sam": 52000000,
+        "projected": true
+      }
+    ]
+  },
+  "features": [
+    {
+      "id": "f1",
+      "label": "Запис у месенджері"
+    },
+    {
+      "id": "f2",
+      "label": "Передоплата"
+    },
+    {
+      "id": "f3",
+      "label": "Нагадування клієнту"
+    },
+    {
+      "id": "f4",
+      "label": "Розклад кількох майстрів"
+    },
+    {
+      "id": "f5",
+      "label": "Склад і матеріали"
+    },
+    {
+      "id": "f6",
+      "label": "Працює без застосунку"
+    }
+  ],
+  "positioning": {
+    "x": {
+      "label": "Простота налаштування",
+      "low": "тижні",
+      "high": "5 хвилин"
+    },
+    "y": {
+      "label": "Глибина функцій",
+      "low": "тільки запис",
+      "high": "повна CRM"
+    },
+    "quadrants": [
+      "Потужно, але важко",
+      "Ідеал",
+      "Ручна робота",
+      "Швидкий старт"
+    ]
+  },
+  "competitors": [
+    {
+      "name": "Ваш бот",
+      "you": true,
+      "x": 9,
+      "y": 3.5,
+      "price": {
+        "value": 9,
+        "period": "month",
+        "basis": "assumed"
+      },
+      "features": {
+        "f1": "full",
+        "f2": "full",
+        "f3": "full",
+        "f4": "partial",
+        "f5": "none",
+        "f6": "full"
+      }
+    },
+    {
+      "name": "BookFlow",
+      "url": "https://example.com/bookflow",
+      "x": 6,
+      "y": 6,
+      "price": {
+        "value": 15,
+        "period": "month",
+        "sources": [
+          "S2"
+        ]
+      },
+      "features": {
+        "f1": "partial",
+        "f2": "full",
+        "f3": "full",
+        "f4": "full",
+        "f5": "none",
+        "f6": "none"
+      }
+    },
+    {
+      "name": "SalonPro",
+      "url": "https://example.com/salonpro",
+      "x": 2.5,
+      "y": 9,
+      "price": {
+        "value": 348,
+        "period": "year",
+        "sources": [
+          "S3"
+        ],
+        "note": "річна оплата"
+      },
+      "features": {
+        "f1": "none",
+        "f2": "full",
+        "f3": "full",
+        "f4": "full",
+        "f5": "full",
+        "f6": "none"
+      }
+    },
+    {
+      "name": "CalendarLite",
+      "url": "https://example.com/calendarlite",
+      "x": 8,
+      "y": 2,
+      "price": {
+        "value": 0,
+        "period": "month",
+        "basis": "sourced",
+        "sources": [
+          "S1"
+        ],
+        "note": "безкоштовний тариф"
+      },
+      "features": {
+        "f1": "none",
+        "f2": "none",
+        "f3": "partial",
+        "f4": "none",
+        "f5": "none",
+        "f6": "partial"
+      }
+    },
+    {
+      "name": "Таблиця + Direct",
+      "url": "https://example.com/manual",
+      "x": 7,
+      "y": 1,
+      "price": {
+        "value": 0,
+        "period": "month",
+        "basis": "assumed"
+      },
+      "features": {
+        "f1": "partial",
+        "f2": "none",
+        "f3": "none",
+        "f4": "none",
+        "f5": "none",
+        "f6": "full"
+      }
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A1",
+      "text": "Майстри готові платити $9 на місяць замість безкоштовної таблиці",
+      "category": "viability",
+      "impact": 5,
+      "uncertainty": 5
+    },
+    {
+      "id": "A2",
+      "text": "Клієнти погоджуються на передоплату через бота",
+      "category": "value",
+      "impact": 4,
+      "uncertainty": 4
+    },
+    {
+      "id": "A3",
+      "text": "Майстрів можна дешево знайти через спільноти в Telegram",
+      "category": "go-to-market",
+      "impact": 4,
+      "uncertainty": 5
+    },
+    {
+      "id": "A4",
+      "text": "Налаштування справді займає до 5 хвилин",
+      "category": "usability",
+      "impact": 3,
+      "uncertainty": 2
+    },
+    {
+      "id": "A5",
+      "text": "Telegram не змінить правила для ботів з оплатою",
+      "category": "feasibility",
+      "impact": 4,
+      "uncertainty": 2
+    },
+    {
+      "id": "A6",
+      "text": "Великі CRM не додадуть запис у месенджері найближчий рік",
+      "category": "strategy",
+      "impact": 3,
+      "uncertainty": 4
+    }
+  ],
+  "scorecard": {
+    "dimensions": [
+      {
+        "id": "problem",
+        "label": "Гострота проблеми",
+        "score": 4,
+        "evidence": "tested",
+        "why": "4 з 5 опитаних майстрів ведуть запис вручну і втрачають клієнтів",
+        "sources": [
+          "S4"
+        ]
+      },
+      {
+        "id": "market",
+        "label": "Розмір ринку",
+        "score": 3,
+        "evidence": "sourced",
+        "sources": [
+          "S1"
+        ],
+        "why": "SAM близько $42 млн, ринок зростає"
+      },
+      {
+        "id": "competition",
+        "label": "Вільна ніша",
+        "score": 3.5,
+        "evidence": "sourced",
+        "sources": [
+          "S2",
+          "S3"
+        ],
+        "why": "Ніхто не робить запис у месенджері без застосунку"
+      },
+      {
+        "id": "differentiation",
+        "label": "Відмінність",
+        "score": 3,
+        "evidence": "estimated",
+        "why": "Запис без застосунку; легко скопіювати"
+      },
+      {
+        "id": "wtp",
+        "label": "Готовність платити",
+        "score": 2,
+        "evidence": "assumed",
+        "why": "Безкоштовна таблиця — головний конкурент"
+      },
+      {
+        "id": "reach",
+        "label": "Доступ до клієнтів",
+        "score": 3,
+        "evidence": "assumed",
+        "why": "Спільноти майстрів у Telegram"
+      },
+      {
+        "id": "feasibility",
+        "label": "Здійсненність",
+        "score": 4.5,
+        "evidence": "estimated",
+        "why": "MVP за 4–6 тижнів на Bot API"
+      }
+    ],
+    "profile": "bootstrapped"
+  },
+  "experiments": [
+    {
+      "id": "E1",
+      "assumption": "A1",
+      "method": "Лендинг з ціною і кнопкою оплати",
+      "start_week": 1,
+      "weeks": 2,
+      "success": "≥ 5% відвідувачів-майстрів натискають «Оплатити»",
+      "focal": true
+    },
+    {
+      "id": "E2",
+      "assumption": "A3",
+      "method": "Пости у 5 спільнотах майстрів",
+      "start_week": 1,
+      "weeks": 1,
+      "success": "≥ 40 заявок на бета-доступ"
+    },
+    {
+      "id": "E3",
+      "assumption": "A2",
+      "method": "Ручний бот-консьєрж для 10 майстрів",
+      "start_week": 3,
+      "weeks": 3,
+      "success": "≥ 60% записів з передоплатою"
+    },
+    {
+      "id": "E4",
+      "assumption": "A6",
+      "method": "Огляд роадмапів 3 CRM",
+      "start_week": 2,
+      "weeks": 1,
+      "success": "Жодна не анонсує запис у месенджері"
+    }
+  ]
+}
