@@ -43,7 +43,7 @@ A validation needs five facts: **who** has the problem, **what** problem or job,
 - Take whatever the request already says. If two or more facts are missing, send **one message** with at most 3 short numbered questions, each with your default in brackets. Add one more line: "If you have interview notes, survey results or sales data, give me the file path. That is the only evidence that counts as tested."
 - Any default the user did not confirm is written in `brief.md` as `assumed`. Scores that depend on it stay `assumed` and are capped at 3. That is the price of "go, no questions", so say it in one line.
 - Files the user names with `--evidence` or in the chat are copied into `product/<slug>/evidence/` unchanged and cited as sources with `path`. You never write into `evidence/` yourself.
-- `--resume <slug>`: read `brief.md`, `data.json` and `report.md`, and continue from the first step that is not done.
+- `--resume <slug>`: read `brief.md`, `data.json` and `report.md`, and continue from the first step that is not done. A resume that changes `data.json` (new evidence, a recalculated market, a new score) always ends with step 6 below, so the charts and the verdict match the data.
 
 Announce the plan in two or three lines: the route, the depth, the steps and the agents you will start. Then begin.
 
@@ -85,6 +85,8 @@ Put numbers into `data.json` (schema: `sdd-product:product-charts` → `referenc
 
 ## 5. Score, challenge, decide
 
+Routes without a scorecard (`competition`, `market`, `business`, `strategy`, `launch`, `build`) skip items 1–3 and 5 but still run item 4: every route ends with charts.
+
 1. Fill `scorecard` with the seven standard dimensions and `profile` from the brief. Each dimension gets a one-line `why`, its evidence level and its sources.
 2. Start `sdd-product:skeptic` with only the folder path, not this conversation. Write each of its challenges into `data.json` → `red_team` (`dimension`, `claimed`, `proposed`, `reason`, `would_restore`). Add every source the skeptic gives to `sources` with the next free id, list those ids in the challenge's `sources`, apply its `indirect` flags as `"direct": false`, and run `verify` again. A challenge backed by a verified source applies in full; one without lowers the score by at most 0.5.
 3. For each challenge, either set `"resolution": "accepted"`, or set `"rebutted"` and list in `rebuttal_sources` the ids of sources that `verify` confirmed. A rebuttal without such a source does not count, and the script ignores it.
@@ -92,7 +94,9 @@ Put numbers into `data.json` (schema: `sdd-product:product-charts` → `referenc
 5. Run `product_charts.py provenance product/<slug>/data.json` and paste its table into the report under "Where every number comes from". This is how the reader tells checked facts from estimates and guesses.
 6. Check that the run did not write outside `product/` (`git status --porcelain` in a repository, otherwise list the new files). Report any such file. Do not delete it.
 
-## 6. Report and hand-off
+## 6. Charts, report and hand-off
+
+**Charts are not optional.** Whenever this run created or changed `data.json`, in any route, at any depth and on `--resume`, run `sdd-product:product-charts` (check, then build) as the last step before the report, and run `check` once more afterwards: it must not list any chart as "not rendered yet" or "older than data.json". If `check` reports errors that block the build, fix the data rather than skip the charts, and say in the reply which chart is missing and why. The reply always gives the path to `charts/index.html`.
 
 Write `product/<slug>/report.md` from `references/report-template.md`. Lead with the verdict, the confidence, the share of sources verified, **what share of the score rests on real data**, what was capped or challenged, and **what evidence would change the verdict**. Do not explain a verdict away in prose: if the script says UNPROVEN or KILL, the report says so. The first experiment is always the cheapest way to turn the most important `assumed` dimension into `tested`.
 

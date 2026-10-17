@@ -358,6 +358,12 @@ class Plugin(unittest.TestCase):
         self.assertNotIn("disable-model-invocation", fm)  # the desktop app hides such skills from the / menu
         self.assertIn("Use only when the user types /sdd-product:product", fm)
 
+    def test_every_route_ends_with_charts(self):
+        text = (PLUGIN / "skills" / "product" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Charts are not optional", text)
+        self.assertIn("every route ends with charts", text)
+        self.assertIn("always ends with step 6", text)
+
     def test_skeptic_cannot_write(self):
         fm = self.frontmatter(PLUGIN / "agents" / "skeptic.md")
         self.assertFalse({"Write", "Edit", "Bash"} & {x.strip() for x in fm["tools"].split(",")})

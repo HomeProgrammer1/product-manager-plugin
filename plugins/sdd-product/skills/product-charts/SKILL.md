@@ -30,7 +30,7 @@ Arguments: `$ARGUMENTS`
    ```
    CHARTS: <n> rendered, skipped: <names>
    FILES: product/<slug>/charts/index.html
-   VERDICT: <GO|PIVOT|KILL> <score>/5, confidence <low|medium|high>
+   VERDICT: <GO|PIVOT|KILL|UNPROVEN> <score>/5, confidence <low|medium|high>, grounded <tested/verified/indirect/guess %>
    ISSUES: none | <warnings left and why>
    ```
 
