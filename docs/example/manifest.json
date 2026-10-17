@@ -33,7 +33,7 @@
     {
       "name": "scorecard",
       "svg": "docs/example/scorecard.svg",
-      "source_sha1": "499c8ef03a0d"
+      "source_sha1": "e6d46a89cc9b"
     },
     {
       "name": "experiments",
@@ -43,22 +43,23 @@
   ],
   "skipped": [],
   "verdict": {
-    "score": 3.11,
+    "score": 2.89,
     "verdict": "pivot",
-    "confidence": 0.39,
+    "confidence": 0.21,
     "confidence_level": "low",
     "red_flags": [],
     "go_threshold": 3.5,
     "kill_below": 2.5,
     "profile": "bootstrapped",
     "capped": [
+      "problem",
       "competition",
       "feasibility"
     ],
     "fragile": [],
     "challenged": [],
     "evidence": {
-      "problem": "tested",
+      "problem": "unverified",
       "market": "unverified",
       "competition": "unverified",
       "differentiation": "estimated",
@@ -67,13 +68,20 @@
       "feasibility": "estimated"
     },
     "used": {
-      "problem": 4.0,
+      "problem": 3.0,
       "market": 3.0,
       "competition": 3.0,
       "differentiation": 3.0,
       "wtp": 2.0,
       "reach": 3.0,
       "feasibility": 4.0
-    }
+    },
+    "grounded": {
+      "tested": 0,
+      "verified": 0,
+      "proxy": 0,
+      "guess": 100
+    },
+    "backed_challenges": []
   }
 }

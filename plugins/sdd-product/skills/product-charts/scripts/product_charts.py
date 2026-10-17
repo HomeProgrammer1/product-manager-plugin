@@ -19,11 +19,15 @@ Usage:
   product_charts.py check <data.json> [--strict]
   product_charts.py build <data.json> [--out DIR] [--tokens FILE] [--theme FILE]
   product_charts.py verdict <data.json>
+  product_charts.py verify <data.json>
+  product_charts.py provenance <data.json>
 
 check writes nothing; it reports schema, consistency and evidence problems.
 Exit 1 on errors (and on warnings with --strict).
+verify opens every source and writes signed verification records into data.json.
+provenance prints a table of every number the verdict uses and what it rests on.
 
-Standard library only. No network.
+Standard library only. verify needs network; PDF sources also need pdftotext.
 """
 import argparse
 import hashlib
@@ -185,7 +189,9 @@ WORDS = {
         "verified": "verified source", "resolved": "page found, quote not", "unverified": "unverified",
         "capped": "capped by evidence", "fragile": "Fragile: ±0.5 on {dims} flips the verdict",
         "profile": "Profile", "side": "side project", "bootstrapped": "bootstrapped", "venture": "venture",
-        "sources_checked": "Sources checked",
+        "sources_checked": "Sources checked", "unproven": "UNPROVEN",
+        "grounded": "Grounded in", "grounded_parts": "your data {t}% · checked, about your segment {v}% · checked, indirect {p}% · guesses {a}%",
+        "proxy": "indirect source", "prov": ("What", "Value", "Rests on"), "price_of": "price",
     },
     "uk": {
         "market": "Розмір ринку", "trend": "Динаміка ринку", "pricing": "Вхідна ціна",
@@ -206,7 +212,9 @@ WORDS = {
         "verified": "перевірене джерело", "resolved": "сторінка є, цитати нема", "unverified": "не перевірено",
         "capped": "обрізано доказами", "fragile": "Крихкий: ±0,5 у «{dims}» змінює вердикт",
         "profile": "Профіль", "side": "підробіток", "bootstrapped": "бутстреп", "venture": "венчур",
-        "sources_checked": "Перевірено джерел",
+        "sources_checked": "Перевірено джерел", "unproven": "НЕ ДОВЕДЕНО",
+        "grounded": "Спирається на", "grounded_parts": "ваші дані {t}% · перевірене про ваш сегмент {v}% · перевірене непряме {p}% · припущення {a}%",
+        "proxy": "непряме джерело", "prov": ("Що", "Значення", "На чому тримається"), "price_of": "ціна",
     },
 }
 
@@ -711,10 +719,12 @@ PROFILES = {
 }
 STANDARD_WEIGHTS = {"problem": 2, "market": 1, "competition": 1, "differentiation": 1, "wtp": 2, "reach": 1, "feasibility": 1}
 RED_FLAG_BELOW = 2.0
+CHALLENGE_STEP = 0.5
 # effective evidence -> (confidence weight, highest score it may support)
 EFFECTIVE = {
     "tested": (1.0, 5.0),        # founder's own data file, verified
     "verified": (0.8, 5.0),      # public page opened, quote found
+    "proxy": (0.5, 4.0),         # verified, but about another segment, market or geography ("direct": false)
     "resolved": (0.5, 4.0),      # page opened, quote not found (JS page, paywall, paraphrase)
     "estimated": (0.4, 4.0),     # arithmetic shown in the report
     "unverified": (0.2, 3.0),    # claims a source nobody checked, or the check failed
@@ -788,7 +798,8 @@ def effective_evidence(claim, sources, base=None):
         return "tested" if "tested" in states else "unverified"
     for best in ("tested", "verified", "resolved"):
         if best in states:
-            return "verified" if best == "tested" else best
+            eff = "verified" if best == "tested" else best
+            return "proxy" if eff == "verified" and claim.get("direct") is False else eff
     return "unverified"
 
 
@@ -814,7 +825,10 @@ def compute_verdict(data, base=None):
     dims, capped = [], []
     # red-team challenges: a lower score proposed by the independent skeptic stands
     # unless it was rebutted with a verified or tested source
-    challenged = {}
+    # A challenge backed by a verified source (counter-evidence) applies in full. A challenge
+    # without one ("the evidence is thin") may lower a score by at most CHALLENGE_STEP: thin
+    # evidence is already priced in by the cap, so it must not be counted twice.
+    challenged, backed = {}, set()
     for c in data.get("red_team") or []:
         did, prop = c.get("dimension"), c.get("proposed")
         if not isinstance(prop, (int, float)):
@@ -822,11 +836,16 @@ def compute_verdict(data, base=None):
         rebut = [r for r in c.get("rebuttal_sources") or [] if r in sources and source_state(sources[r], base) in ("verified", "tested")]
         if c.get("resolution") == "rebutted" and rebut:
             continue
-        challenged[did] = min(challenged.get(did, 5.0), float(prop))
+        proof = [r for r in c.get("sources") or [] if r in sources and source_state(sources[r], base) in ("verified", "tested")]
+        challenged.setdefault(did, []).append((float(prop), bool(proof)))
+        if proof:
+            backed.add(did)
     for d in raw:
         eff = effective_evidence(d, sources, base)
         conf_w, cap = EFFECTIVE[eff]
-        cap = min(cap, challenged.get(d["id"], 5.0))
+        before = min(float(d["score"]), cap)
+        for prop, proof in challenged.get(d["id"], []):
+            cap = min(cap, prop if proof else max(prop, before - CHALLENGE_STEP))
         w = STANDARD_WEIGHTS.get(d["id"], float(d.get("weight", 1)))
         if d["id"] == "market":
             w = profile["market_weight"]
@@ -835,6 +854,13 @@ def compute_verdict(data, base=None):
             capped.append(d["id"])
         dims.append({"id": d["id"], "w": w, "used": used, "score": float(d["score"]), "eff": eff, "conf": conf_w})
     total, red, v = score_verdict(dims, profile)
+    raw_v = v
+    # KILL needs evidence against the idea. When every low score is low only because evidence
+    # is missing (assumed, unverified or thin), the honest answer is "not proven yet".
+    if v == "kill":
+        against = [d["id"] for d in dims if d["used"] < profile["kill"] and (d["eff"] in ("tested", "verified") or d["id"] in backed)]
+        if not against:
+            v = "unproven"
     tw = sum(d["w"] for d in dims) or 1
     conf = sum(d["conf"] * d["w"] for d in dims) / tw
     # fragile: one dimension moved by half a point flips the verdict
@@ -843,14 +869,19 @@ def compute_verdict(data, base=None):
         for delta in (-0.5, 0.5):
             alt = [dict(x) for x in dims]
             alt[i]["used"] = max(0.0, min(EFFECTIVE[d["eff"]][1], d["used"] + delta))
-            if score_verdict(alt, profile)[2] != v:
+            if score_verdict(alt, profile)[2] != raw_v:
                 fragile.append(d["id"])
                 break
     level = "high" if conf >= 0.65 else "medium" if conf >= 0.4 else "low"
+    grounded = {"tested": 0.0, "verified": 0.0, "proxy": 0.0, "guess": 0.0}
+    for d in dims:
+        key = d["eff"] if d["eff"] in ("tested", "verified", "proxy") else "guess"
+        grounded[key] += d["w"] / tw
     return {"score": round(total, 2), "verdict": v, "confidence": round(conf, 2), "confidence_level": level,
             "red_flags": red, "go_threshold": profile["go"], "kill_below": profile["kill"], "profile": pname,
             "capped": capped, "fragile": fragile, "challenged": sorted(challenged),
-            "evidence": {d["id"]: d["eff"] for d in dims}, "used": {d["id"]: d["used"] for d in dims}}
+            "evidence": {d["id"]: d["eff"] for d in dims}, "used": {d["id"]: d["used"] for d in dims},
+            "grounded": {k: round(v_ * 100) for k, v_ in grounded.items()}, "backed_challenges": sorted(backed)}
 
 
 # --------------------------------------------------------------------- verify
@@ -866,9 +897,34 @@ def page_text(raw):
 
 def norm(text):
     text = text.lower().replace("\u00a0", " ").replace("\u202f", " ")
+    text = re.sub(r"[\u00ad\u200b-\u200d\u2060\ufeff]", "", text)
     text = re.sub(r"[\u2018\u2019\u201c\u201d\"'`«»]", "", text)
     text = re.sub(r"(?<=\d)[ ,.](?=\d{3}\b)", "", text)   # 52 000 / 52,000 / 52.000 -> 52000
     return re.sub(r"\s+", " ", text).strip()
+
+
+MIN_QUOTE_WORDS = 5
+
+
+def weak_quote(q):
+    """A fragment like "70.89%" or "Self-serve $115" proves nothing about what the number counts."""
+    return len(norm(q).split()) < MIN_QUOTE_WORDS
+
+
+class PdfUnreadable(Exception):
+    pass
+
+
+def pdf_text(body):
+    import shutil
+    import subprocess
+    exe = shutil.which("pdftotext")
+    if not exe:
+        raise PdfUnreadable("PDF: quotes need pdftotext (poppler) on this machine; the page counts as found, not verified")
+    r = subprocess.run([exe, "-q", "-layout", "-", "-"], input=body, capture_output=True, timeout=60)
+    if r.returncode:
+        raise PdfUnreadable("PDF: pdftotext could not read it")
+    return r.stdout.decode("utf-8", errors="replace")
 
 
 def fetch(url, timeout=15):
@@ -877,6 +933,8 @@ def fetch(url, timeout=15):
                                                "Accept": "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         body = r.read(MAX_BYTES)
+        if body[:5] == b"%PDF-" or "pdf" in (r.headers.get_content_type() or ""):
+            return r.status, r.geturl(), pdf_text(body)
         charset = r.headers.get_content_charset() or "utf-8"
         return r.status, r.geturl(), body.decode(charset, errors="replace")
 
@@ -893,7 +951,13 @@ def verify_sources(data, base, today, fetcher=fetch):
                 rec["http"] = "file"
                 rec["file"] = file_hash(base, src["path"])
             elif src.get("url"):
-                status, final, raw = fetcher(src["url"])
+                try:
+                    status, final, raw = fetcher(src["url"])
+                except PdfUnreadable as e:
+                    rec.update(http=200, status="url", reason=str(e))
+                    src["verification"] = {**rec, "sig": source_sig(src, "", rec)}
+                    results.append((src.get("id"), rec))
+                    continue
                 rec["http"] = status
                 if final != src["url"]:
                     rec["final_url"] = final
@@ -908,11 +972,13 @@ def verify_sources(data, base, today, fetcher=fetch):
             if found:
                 i = page.find(norm(found[0]))
                 rec["excerpt"] = page[max(0, i - 120): i + len(norm(found[0])) + 120]
-            if quotes and len(found) == len(quotes):
+            if quotes and len(found) == len(quotes) and not all(weak_quote(q) for q in quotes):
                 rec["status"] = "quote"
             else:
                 rec["status"] = "url"
-                rec["reason"] = "no quote given" if not quotes else f"{len(quotes) - len(found)} of {len(quotes)} quotes not on the page"
+                rec["reason"] = ("no quote given" if not quotes else
+                                 f"{len(quotes) - len(found)} of {len(quotes)} quotes not on the page" if len(found) < len(quotes) else
+                                 f"quotes too short to show what the number counts (need {MIN_QUOTE_WORDS}+ words)")
         except Exception as e:  # network, HTTP 4xx/5xx, missing file
             rec.update(status="failed", reason=f"{type(e).__name__}: {str(e)[:120]}")
         src["verification"] = {**rec, "sig": source_sig(src, rec.get("file", ""), rec)}
@@ -938,6 +1004,8 @@ def chart_scorecard(data, theme, W, lang, h):
     if vd["fragile"]:
         names = ", ".join(next((x["label"] for x in dims if x["id"] == f), f) for f in vd["fragile"])
         s.text(MARGIN, 112, W["fragile"].format(dims=names), 11.5, "critical")
+    else:
+        s.text(MARGIN, 112, f"{W['grounded']}: {grounded_line(vd, W)}", 11.5, "muted")
     for i in range(6):
         x = left + plot_w * i / 5
         s.raw(f'<line x1="{fmt(x)}" y1="{top - 8}" x2="{fmt(x)}" y2="{hgt - 26}" {s.stroke("grid" if i else "rule")} stroke-width="1"/>')
@@ -1040,6 +1108,12 @@ def check(data, base=None):
             warns.append(f"source {s.get('id')}: no 'accessed' date")
         if (s.get("url") or s.get("path")) and source_state(s, base) == "unverified":
             warns.append(f"source {s.get('id')}: not verified (run verify); counts as unverified until then")
+        for q in s.get("quotes") or []:
+            if weak_quote(q):
+                warns.append(f"source {s.get('id')}: quote \"{q[:40]}\" is a fragment; quote the whole sentence that says what the number counts")
+        yr, today_y = s.get("data_year"), str((meta or {}).get("date", ""))[:4]
+        if isinstance(yr, int) and today_y.isdigit() and int(today_y) - yr > 3:
+            warns.append(f"source {s.get('id')}: data from {yr}; look for newer figures")
 
     src_by_id = {s.get("id"): s for s in data.get("sources") or []}
 
@@ -1075,6 +1149,25 @@ def check(data, base=None):
             errors.append("market: SOM is larger than SAM")
         if "sam" in vals and "som" in vals and vals["sam"] and vals["som"] / vals["sam"] > 0.2:
             warns.append(f"market: SOM is {vals['som'] / vals['sam']:.0%} of SAM; above ~20% needs a strong reason")
+        for k in ("tam", "sam", "som"):
+            inp = (m.get(k) or {}).get("inputs") if isinstance(m.get(k), dict) else None
+            if not inp:
+                if isinstance(m.get(k), dict) and m[k].get("basis") == "estimated":
+                    warns.append(f"market.{k}: estimated without 'inputs'; list each factor with its source or 'assumed'")
+                continue
+            prod = 1.0
+            for j, f in enumerate(inp):
+                if not isinstance(f.get("value"), (int, float)):
+                    errors.append(f"market.{k}.inputs[{j}]: value must be a number")
+                    prod = None
+                    break
+                prod *= f["value"]
+                cite(f"market.{k}.inputs[{j}] ({f.get('label', '')})", f)
+            if prod is not None and k in vals and vals[k] and abs(prod - vals[k]) / vals[k] > 0.02:
+                errors.append(f"market.{k}: inputs multiply to {prod:,.0f}, not {vals[k]:,.0f}")
+            guesses = [f.get("label", f"#{j}") for j, f in enumerate(inp) if f.get("basis") == "assumed"]
+            if guesses:
+                warns.append(f"market.{k} rests on assumed factor(s): {', '.join(guesses)}")
         if isinstance(m.get("tam"), dict) and m["tam"].get("basis") == "assumed":
             warns.append("market.tam is only assumed; find at least one source")
         for i, p in enumerate(m.get("projection") or []):
@@ -1170,6 +1263,16 @@ def check(data, base=None):
             errors.append(f"red_team[{i}]: resolution must be accepted or rebutted")
         if c.get("resolution") is None:
             warns.append(f"red_team[{i}] on {c.get('dimension')}: unresolved; the proposed score applies")
+        for r in c.get("sources") or []:
+            if r not in src_ids:
+                errors.append(f"red_team[{i}]: cites unknown source {r}; add the skeptic's sources to 'sources' and run verify")
+            elif source_state(src_by_id[r], base) not in ("verified", "tested"):
+                warns.append(f"red_team[{i}] on {c.get('dimension')}: source {r} not verified, so the challenge lowers the score by at most {CHALLENGE_STEP}")
+    for st in (meta or {}).get("steps") or []:
+        if st.get("mode") in ("reduced", "skipped") and not st.get("reason"):
+            errors.append(f"meta.steps: step {st.get('n')} ({st.get('skill')}) is {st.get('mode')} without a reason")
+        if st.get("mode") in ("reduced", "skipped") and "time" in str(st.get("reason", "")).lower():
+            warns.append(f"meta.steps: step {st.get('n')} ({st.get('skill')}) {st.get('mode')} to save time; run the skill")
     aids = {a.get("id") for a in data.get("assumptions") or []}
     for e in data.get("experiments") or []:
         if e.get("assumption") and e["assumption"] not in aids:
@@ -1227,6 +1330,11 @@ def table_html(name, data, W, lang):
     return f'<details><summary>{esc(W["table"])}</summary><div class="tw"><table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div></details>'
 
 
+def grounded_line(vd, W):
+    g = vd.get("grounded") or {}
+    return W["grounded_parts"].format(t=g.get("tested", 0), v=g.get("verified", 0), p=g.get("proxy", 0), a=g.get("guess", 0))
+
+
 def dashboard_html(data, items, theme, W, lang, vd, base=None):
     t, d = theme, DARK_THEME
     srcs_ = data.get("sources") or []
@@ -1261,6 +1369,7 @@ def dashboard_html(data, items, theme, W, lang, vd, base=None):
                    f'<div class="tile"><span>{esc(W["weighted"])}</span><b>{vd["score"]:.1f} / 5</b></div>'
                    f'<div class="tile"><span>{esc(W["confidence"])}</span><b>{esc(W[vd["confidence_level"]])} · {int(vd["confidence"] * 100)}%</b></div>'
                    f'<div class="tile"><span>{esc(W["sources_checked"])}</span><b>{checked}</b></div>'
+                   f'<div class="tile"><span>{esc(W["grounded"])}</span><b>{esc(grounded_line(vd, W))}</b></div>'
                    '</div>')
     for name, svg in items:
         out.append(f'<section id="{name}" data-chart="{name}"><div class="scroll">{svg}</div>{table_html(name, data, W, lang)}</section>')
@@ -1275,6 +1384,49 @@ def dashboard_html(data, items, theme, W, lang, vd, base=None):
         out.append("</ul>")
     out.append(f'<footer>{esc(W["generated"])} data.json · {esc(meta.get("date", ""))}</footer></main></body></html>\n')
     return "".join(out)
+
+
+# --------------------------------------------------------------------- provenance
+
+
+def provenance(data, base=None):
+    """Markdown table: every number the verdict uses, and what it actually rests on."""
+    W, lang = words(data)
+    cur = (data.get("meta") or {}).get("currency", "USD")
+    sources = {s.get("id"): s for s in data.get("sources") or []}
+
+    def backing(obj):
+        level = obj.get("basis") or obj.get("evidence") or "sourced"
+        refs = obj.get("sources") or []
+        if not refs:
+            return W.get(level, level)
+        states = ", ".join(f"{r} {W.get(source_state(sources[r], base), '?')}" for r in refs if r in sources)
+        return f"{W.get(level, level)}: {states}"
+
+    rows = [W["prov"]]
+    m = data.get("market") or {}
+    for k in ("tam", "sam", "som"):
+        x = m.get(k)
+        if not isinstance(x, dict):
+            continue
+        rows.append((f"{k.upper()} {x.get('label', '')}".strip(), money(x.get("value"), cur, lang, False), backing(x)))
+        for f in x.get("inputs") or []:
+            rows.append((f"  × {f.get('label', '')}", fmt(f.get("value")), backing(f)))
+    for c in data.get("competitors") or []:
+        p = c.get("price")
+        if isinstance(p, dict) and p.get("value") is not None:
+            rows.append((f"{c.get('name')}: {W['price_of']}", money(p["value"], cur, lang, False), backing({"basis": p.get("basis", "sourced" if not c.get("you") else "assumed"), "sources": p.get("sources", [])})))
+    vd = compute_verdict(data, base)
+    if vd:
+        for d in (data.get("scorecard") or {}).get("dimensions") or []:
+            eff = vd["evidence"][d["id"]]
+            rows.append((d.get("label", d["id"]), f"{fmt(d['score'])} → {fmt(vd['used'][d['id']])}", f"{W.get(eff, eff)}" + (f" ({', '.join(d.get('sources') or [])})" if d.get("sources") else "")))
+    out = [f"| {' | '.join(rows[0])} |", "|---|---|---|"]
+    out += [f"| {' | '.join(str(c).replace('|', '/') for c in r)} |" for r in rows[1:]]
+    if vd:
+        out.append("")
+        out.append(f"{W['grounded']}: {grounded_line(vd, W)}")
+    return "\n".join(out)
 
 
 # --------------------------------------------------------------------- main
@@ -1318,7 +1470,7 @@ def stale(data, out_dir):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["build", "check", "verdict", "verify"])
+    ap.add_argument("command", choices=["build", "check", "verdict", "verify", "provenance"])
     ap.add_argument("data")
     ap.add_argument("--out")
     ap.add_argument("--tokens")
@@ -1334,6 +1486,9 @@ def main(argv=None):
     out_dir = Path(a.out) if a.out else path.parent / "charts"
     theme = load_theme(a.theme, a.tokens)
     base = path.parent
+    if a.command == "provenance":
+        print(provenance(data, base))
+        return 0
     if a.command == "verdict":
         print(json.dumps(compute_verdict(data, base), ensure_ascii=False))
         return 0

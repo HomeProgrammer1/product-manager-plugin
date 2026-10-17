@@ -62,6 +62,7 @@ Apply the same frameworks by name from your own knowledge: segments, JTBD value 
 | validate → GO | write the PRD for the MVP (`build`); plan the launch (`launch`); with sdd-kit, start the first feature |
 | validate → PIVOT | rerun `validate` on the strongest alternative segment or positioning gap the report names |
 | validate → KILL | name what evidence would reverse the verdict; run the cheapest experiment anyway if the founder still believes |
+| validate → UNPROVEN | run the first experiment, put its notes into `evidence/`, then `--resume <slug>`; more desk research will not move the verdict |
 | competition | sharpen positioning (`strategy`); price against them (`business`) |
 | market | full validation (`validate`) |
 | business, strategy | validate the riskiest assumption they created |

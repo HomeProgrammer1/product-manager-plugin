@@ -20,7 +20,7 @@
 # <title>
 <date> · route <route> · depth <depth> · pm-skills <yes|reduced mode>
 
-## Verdict: <GO | PIVOT | KILL>, <score>/5, confidence <low|medium|high>
+## Verdict: <GO | PIVOT | KILL | UNPROVEN>, <score>/5, confidence <low|medium|high>
 ![Scorecard](charts/scorecard.svg)
 
 **Why**
@@ -29,6 +29,8 @@
 3. …
 
 Profile <side|bootstrapped|venture> · sources verified <n>/<m> · capped by evidence: <dims or none> · challenged by the skeptic: <dims or none> · fragile: <dims or no>
+
+Grounded in: your data <t>% · verified, about this segment <v>% · verified, indirect <p>% · guesses <a>%
 
 **What would change the verdict:** <the one or two facts that would flip it, and which evidence level they need>
 
@@ -41,9 +43,12 @@ Profile <side|bootstrapped|venture> · sources verified <n>/<m> · capped by evi
 |---|---|---|---|
 ![Experiments](charts/experiments.svg)
 
+## Where every number comes from
+<the table printed by `product_charts.py provenance`, unedited>
+
 ## Market
 ![Market](charts/market.svg)
-<TAM/SAM/SOM with formulas for estimated values; growth chart if present>
+<base case from market-sizing; both methods (top-down, bottom-up) and three scenarios; each factor with its source or "assumed"; growth chart if present>
 
 ## Competition
 ![Features](charts/features.svg)
@@ -59,7 +64,7 @@ Profile <side|bootstrapped|venture> · sources verified <n>/<m> · capped by evi
 <its strongest case against; each challenge with accepted or rebutted, and the verified source behind any rebuttal>
 
 ## Gaps
-<what was not found, warnings left from the chart check, assumptions not yet tested>
+<steps run in reduced mode or skipped, with the reason from meta.steps; what was not found; warnings left from the chart check; assumptions not yet tested>
 
 ## Sources
 <S1 … with URL and access date>

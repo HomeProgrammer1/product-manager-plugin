@@ -67,7 +67,9 @@ Sources whose quote is not found stay in the file but count as `resolved` (page 
 
 ## 4. Frameworks
 
-Follow the route's step list. Invoke each pm-skills skill with the Skill tool and pass this context:
+Follow the route's step list. **Every step at the chosen depth runs its pm-skills skill when that skill is installed.** Doing a step yourself "to save time", or folding it into another step, is not allowed: it is exactly where the report stops being checkable. Reduced mode is only for a skill that is not installed. Record every step in `data.json` → `meta.steps` (`n`, `skill`, `mode`: `skill`, `reduced` or `skipped`, and `reason` for the last two); `check` fails a reduced or skipped step without a reason.
+
+Invoke each pm-skills skill with the Skill tool and pass this context:
 - the brief and only the evidence that step needs, with source ids;
 - this instruction, word for word: "Use only the evidence provided here; do not run web searches; do not save files; return the analysis in your reply." This avoids paying twice for the same search and keeps files inside `product/`.
 
@@ -77,17 +79,22 @@ When a pm-skills skill asks a question:
 
 Put numbers into `data.json` (schema: `sdd-product:product-charts` → `references/data-schema.md`) and the reasoning into `report.md`. Update the status after each step.
 
+**Market size** (step 4 of `validate`, and the `market` route) always goes through `pm-market-research:market-sizing`. Ask it for both methods (top-down and bottom-up) and three scenarios (low, base, high). Put the base case into `market`, write every factor into `market.<tam|sam|som>.inputs` with its source or `"basis": "assumed"`, and put the other method and the scenarios into the report. A TAM that counts every firm as a buyer of your price is not a market size: multiply by the share that has the problem and would buy.
+
+**Direct or indirect.** When a dimension's sources describe another segment, market or geography (EU-wide statistics for a Polish niche, rival prices standing in for this buyer's willingness to pay), set `"direct": false` on it.
+
 ## 5. Score, challenge, decide
 
 1. Fill `scorecard` with the seven standard dimensions and `profile` from the brief. Each dimension gets a one-line `why`, its evidence level and its sources.
-2. Start `sdd-product:skeptic` with only the folder path, not this conversation. Write each of its challenges into `data.json` → `red_team` (`dimension`, `claimed`, `proposed`, `reason`, `would_restore`).
+2. Start `sdd-product:skeptic` with only the folder path, not this conversation. Write each of its challenges into `data.json` → `red_team` (`dimension`, `claimed`, `proposed`, `reason`, `would_restore`). Add every source the skeptic gives to `sources` with the next free id, list those ids in the challenge's `sources`, apply its `indirect` flags as `"direct": false`, and run `verify` again. A challenge backed by a verified source applies in full; one without lowers the score by at most 0.5.
 3. For each challenge, either set `"resolution": "accepted"`, or set `"rebutted"` and list in `rebuttal_sources` the ids of sources that `verify` confirmed. A rebuttal without such a source does not count, and the script ignores it.
-4. Run `sdd-product:product-charts` (check, then build). **The script's verdict is final.** It reports which dimensions were capped by evidence, which were challenged, and whether the verdict is **fragile** (±0.5 on one dimension flips it). Put all three into the report.
-5. Check that the run did not write outside `product/` (`git status --porcelain` in a repository, otherwise list the new files). Report any such file. Do not delete it.
+4. Run `sdd-product:product-charts` (check, then build). **The script's verdict is final**: GO, PIVOT, KILL or **UNPROVEN** (low scores, but only because evidence is missing; nothing verified speaks against the idea). It reports which dimensions were capped by evidence, which were challenged, whether the verdict is **fragile** (±0.5 on one dimension flips it), and what share of the score is grounded in real data. Put all of it into the report.
+5. Run `product_charts.py provenance product/<slug>/data.json` and paste its table into the report under "Where every number comes from". This is how the reader tells checked facts from estimates and guesses.
+6. Check that the run did not write outside `product/` (`git status --porcelain` in a repository, otherwise list the new files). Report any such file. Do not delete it.
 
 ## 6. Report and hand-off
 
-Write `product/<slug>/report.md` from `references/report-template.md`. Lead with the verdict, the confidence, the share of sources verified, what was capped or challenged, and **what evidence would change the verdict**. The first experiment is always the cheapest way to turn the most important `assumed` dimension into `tested`.
+Write `product/<slug>/report.md` from `references/report-template.md`. Lead with the verdict, the confidence, the share of sources verified, **what share of the score rests on real data**, what was capped or challenged, and **what evidence would change the verdict**. Do not explain a verdict away in prose: if the script says UNPROVEN or KILL, the report says so. The first experiment is always the cheapest way to turn the most important `assumed` dimension into `tested`.
 
 Reply to the user with:
 - the verdict line;

@@ -93,7 +93,7 @@ def scored(scores, evidence="sourced", sources=("S1",), profile="bootstrapped"):
     ids = ["problem", "market", "competition", "wtp"]
     return {"meta": {"title": "t"},
             "sources": [{"id": "S1", "title": "pricing", "url": "https://a.test/pricing", "quotes": ["Starter plan: $15 per month"]},
-                        {"id": "S2", "title": "report", "url": "https://a.test/report", "quotes": ["52,000 salons in Poland"]},
+                        {"id": "S2", "title": "report", "url": "https://a.test/report", "quotes": ["There are 52,000 salons in Poland"]},
                         {"id": "S3", "title": "made up", "url": "https://a.test/nowhere", "quotes": ["anything"]}],
             "scorecard": {"profile": profile, "dimensions": [
                 {"id": ids[i], "label": ids[i], "score": s, "evidence": evidence, "sources": list(sources), "why": "x"}
@@ -165,9 +165,14 @@ class Verdict(unittest.TestCase):
             Path(tmp, "notes.md").write_text("40 of 40 owners paid", encoding="utf-8")   # edited after verify
             self.assertEqual(set(pc.compute_verdict(d, tmp)["evidence"].values()), {"unverified"})
 
-    def test_red_team_challenge_stands_until_rebutted_with_evidence(self):
+    def test_red_team_challenge_needs_evidence_to_count_in_full(self):
         d = self.verified(scored([4, 4, 4, 4]))
         d["red_team"] = [{"dimension": "wtp", "claimed": 4, "proposed": 1.5, "reason": "nobody paid"}]
+        v = pc.compute_verdict(d)
+        self.assertEqual(v["used"]["wtp"], 3.5)                                      # thin-evidence challenge: at most -0.5
+        d["red_team"][0]["sources"] = ["S3"]                                         # counter-evidence that does not verify
+        self.assertEqual(pc.compute_verdict(d)["used"]["wtp"], 3.5)
+        d["red_team"][0]["sources"] = ["S2"]                                         # verified counter-evidence
         v = pc.compute_verdict(d)
         self.assertEqual(v["used"]["wtp"], 1.5)
         self.assertNotEqual(v["verdict"], "go")
@@ -175,6 +180,63 @@ class Verdict(unittest.TestCase):
         self.assertNotEqual(pc.compute_verdict(d)["verdict"], "go")
         d["red_team"][0]["rebuttal_sources"] = ["S1"]                                # verified rebuttal
         self.assertEqual(pc.compute_verdict(d)["verdict"], "go")
+
+    def test_kill_needs_evidence_against(self):
+        d = scored([2, 2, 2, 2], evidence="assumed", sources=())
+        v = pc.compute_verdict(d)
+        self.assertEqual(v["verdict"], "unproven")                                   # low only for lack of evidence
+        self.assertEqual(v["grounded"]["guess"], 100)
+        d = self.verified(scored([2, 2, 2, 2]))
+        self.assertEqual(pc.compute_verdict(d)["verdict"], "kill")                   # verified sources say it is weak
+
+    def test_indirect_source_counts_less(self):
+        d = self.verified(scored([5, 5, 5, 5]))
+        d["scorecard"]["dimensions"][0]["direct"] = False
+        v = pc.compute_verdict(d)
+        self.assertEqual(v["evidence"]["problem"], "proxy")
+        self.assertEqual(v["used"]["problem"], 4.0)
+        self.assertGreater(v["grounded"]["proxy"], 0)
+
+    def test_pdf_without_reader_counts_as_found_not_verified(self):
+        d = scored([4, 4, 4, 4])
+
+        def pdf_fetch(url, timeout=15):
+            raise pc.PdfUnreadable("PDF: quotes need pdftotext")
+        pc.verify_sources(d, ROOT, "2026-10-16", fetcher=pdf_fetch)
+        self.assertEqual(d["sources"][0]["verification"]["status"], "url")
+        self.assertEqual(pc.compute_verdict(d)["evidence"]["problem"], "resolved")
+
+    def test_provenance_lists_every_number(self):
+        table = pc.provenance(EXAMPLE, EXAMPLE_DIR)
+        self.assertIn("TAM", table)
+        self.assertIn("BookFlow", table)
+        self.assertIn("4.5 → 4", table)
+
+    def test_fragment_quote_does_not_verify(self):
+        d = scored([4, 4, 4, 4])
+        d["sources"][0]["quotes"] = ["$15 per month"]
+        self.verified(d)
+        self.assertEqual(d["sources"][0]["verification"]["status"], "url")
+        self.assertIn("too short", d["sources"][0]["verification"]["reason"])
+        self.assertTrue(any("fragment" in w for w in pc.check(d)[1]))
+
+    def test_market_inputs_must_multiply_and_show_guesses(self):
+        d = copy.deepcopy(EXAMPLE)
+        sam = d["market"]["sam"]["value"]
+        d["market"]["sam"]["inputs"] = [{"label": "agencies", "value": sam / 1000, "basis": "sourced", "sources": ["S1"]},
+                                        {"label": "price", "value": 1000, "basis": "assumed"}]
+        e, w = pc.check(d)
+        self.assertFalse(any("inputs multiply" in x for x in e))
+        self.assertTrue(any("assumed factor(s): price" in x for x in w))
+        d["market"]["sam"]["inputs"][1]["value"] = 999999
+        self.assertTrue(any("inputs multiply" in x for x in errs(d)))
+
+    def test_skipped_step_needs_reason(self):
+        d = copy.deepcopy(EXAMPLE)
+        d["meta"]["steps"] = [{"n": 4, "skill": "pm-market-research:market-sizing", "mode": "reduced"}]
+        self.assertTrue(any("without a reason" in x for x in errs(d)))
+        d["meta"]["steps"][0]["reason"] = "to save time"
+        self.assertTrue(any("to save time" in x for x in pc.check(d)[1]))
 
     def test_profiles_and_fixed_weights(self):
         d = self.verified(scored([3.5, 2, 3.5, 3.5]))

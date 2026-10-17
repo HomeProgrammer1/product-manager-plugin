@@ -46,9 +46,10 @@ Pick two axes buyers actually trade off (price vs depth, setup time vs power, se
 |---|---|---|---|
 | tested | quote found in a file the founder gave | 100% | 5 |
 | verified | quote found on the public page | 80% | 5 |
-| resolved | page opened, quote not found | 50% | 4 |
+| proxy | verified, but about another segment or geography (`direct: false`) | 50% | 4 |
+| resolved | page opened, quote not found (or the quote is a fragment) | 50% | 4 |
 | estimated | arithmetic shown in the report | 40% | 4 |
 | unverified | claims a source nobody could confirm | 20% | 3 |
 | assumed | a guess | 10% | 3 |
 
-The scorecard shows the counted score as the bar and the claimed score as an outline behind it, plus the tag `claimed→counted · evidence`. The verdict line names the profile and warns when the verdict is **fragile**, meaning that ±0.5 on one dimension would flip it. A GO with low confidence means "worth testing", not "build it".
+The scorecard shows the counted score as the bar and the claimed score as an outline behind it, plus the tag `claimed→counted · evidence`. The verdict line names the profile and warns when the verdict is **fragile**, meaning that ±0.5 on one dimension would flip it. A GO with low confidence means "worth testing", not "build it". UNPROVEN replaces KILL when nothing verified speaks against the idea, only the lack of evidence. Under the verdict line the chart shows what share of the score rests on the founder's data, on verified sources about this segment, on indirect sources and on guesses.

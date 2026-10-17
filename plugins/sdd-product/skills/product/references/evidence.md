@@ -23,12 +23,17 @@
 |---|---|---|
 | all quotes found in a founder file | tested | 5 |
 | all quotes found on the page | verified source | 5 |
-| page opened, quote missing (JS page, paywall, paraphrase) | resolved | 4 |
+| quotes found, but about another segment or geography (`direct: false`) | indirect source | 4 |
+| page opened, quote missing (JS page, paywall, paraphrase, PDF without pdftotext, fragment quote) | resolved | 4 |
 | page did not open, no URL, or never verified | unverified | 3 |
 
 The record carries a signature made with a per-machine key in `~/.config/sdd-product/verify.key`. Editing a URL, a quote or a founder file afterwards invalidates it. The record also keeps about 250 characters around the match (`excerpt`), so a human or the skeptic can check it in seconds.
 
-Quote the shortest exact phrase that contains the number or the fact: copy it, do not paraphrase. For a page rendered by JavaScript, look for the same fact on a static page (docs, a press release, a cached copy) before you accept `resolved`.
+Quote the **whole sentence** that contains the number and says what it counts, at least five words: copy it, do not paraphrase or translate. "70.89%" or "Poland (8.36%)" alone prove nothing about what was measured, so `verify` does not accept them. For a page rendered by JavaScript, look for the same fact on a static page (docs, a press release, a cached copy) before you accept `resolved`. PDF sources are read with `pdftotext` when it is installed; otherwise they count as `resolved`.
+
+Record `data_year` for every figure: the year it describes, not the year the page was published.
+
+**Direct or indirect.** A verified source still has to be about this buyer. EU-wide adoption statistics for a Polish niche, or a rival's price used as this buyer's willingness to pay, are indirect: mark the dimension `"direct": false`.
 
 ## Researcher brief (what the orchestrator sends)
 
@@ -47,7 +52,8 @@ The return is strict JSON inside one fenced block, then at most three lines of n
 {
   "question": "competitors",
   "sources": [{"id": "R1", "title": "…", "url": "https://…", "publisher": "…", "accessed": "YYYY-MM-DD",
-               "quotes": ["exact words copied from the page that carry each fact used from it"]}],
+               "data_year": 2025,
+               "quotes": ["the whole sentence copied from the page: number plus what it counts"]}],
   "competitors": [
     {"name": "…", "url": "https://…", "type": "direct|indirect|manual",
      "price": {"value": 15, "period": "month", "sources": ["R1"], "note": "entry paid plan"},
@@ -57,7 +63,7 @@ The return is strict JSON inside one fenced block, then at most three lines of n
   ],
   "market": [
     {"metric": "number of salons in Poland", "value": 52000, "unit": "businesses", "year": 2025,
-     "sources": ["R2"], "quote": "short quote that contains the number"}
+     "sources": ["R2"], "quote": "the whole sentence that contains the number"}
   ],
   "not_found": ["what was searched and not found"]
 }
